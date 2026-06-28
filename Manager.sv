@@ -7,7 +7,6 @@ input  logic [9:0] addr,
 input  logic [31:0] wdata,
 input  logic [31:0] hrdata,
 input  logic hready,
-
 output logic [9:0] haddr,
 output logic [31:0] hwdata,
 output logic hwrite,
@@ -15,7 +14,6 @@ output logic [1:0]  htrans,
 output logic [31:0] rdata,
 output logic done
 );
-
 typedef enum logic [2:0] {
 IDLE,
 WR_ADDR,
@@ -23,65 +21,64 @@ WR_WAIT,
 RD_ADDR,
 RD_WAIT,
 DONE
-} state_t;
-
-state_t state, next_state;
+} m_state;
+m_state cs, ns;
 
 always_ff @(posedge hclk or negedge hresetn) begin
 if (!hresetn)
-state <= IDLE;
+cs <= IDLE;
 else
-state <= next_state;
+cs <= ns;
 end
 
 always_comb begin
-next_state = state;
+ns = cs;
 
-case (state)
+  case (cs)
 IDLE: begin
 if (start && rw)
-next_state = WR_ADDR;
+ns = WR_ADDR;
 else if (start && !rw)
-next_state = RD_ADDR;
+ns = RD_ADDR;
 end
 
 WR_ADDR:
-next_state = WR_WAIT;
+ns = WR_WAIT;
 
 WR_WAIT: begin
 if (hready)
-next_state = DONE;
+ns = DONE;
 end
 
 RD_ADDR:
-next_state = RD_WAIT;
+ns = RD_WAIT;
 
 RD_WAIT: begin
 if (hready)
-next_state = DONE;
+ns = DONE;
 end
 
 DONE:
-next_state = IDLE;
+ns = IDLE;
 
 default:
-next_state = IDLE;
+ns = IDLE;
 endcase
 end
 
 always_ff @(posedge hclk or negedge hresetn) begin
 if (!hresetn) begin
-haddr <= '0;
-hwdata <= '0;
+haddr <= 1'b0;
+hwdata <= 1'b0;
 hwrite <= 1'b0;
 htrans <= 2'b00;
-rdata <= '0;
+rdata <= 1'b0;
 done <= 1'b0;
 end
 else begin
 done <= 1'b0;
 
-case (state)
+  case (cs)
 IDLE: begin
 htrans <= 2'b00;
 hwrite <= 1'b0;
